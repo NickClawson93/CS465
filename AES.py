@@ -1,17 +1,32 @@
 import sys
 
+num_bytes = 4
+num_words = 4 #4, 6, 8 (Nk)
+num_rounds = 8 #10, 12, 14 (Nr)
+
 with open(sys.argv[1]) as in_file:
     byte_array = in_file.readline().strip().split()
 
 with open(sys.argv[2]) as key_file:
-    key = key_file.readline().strip().split()
+    key = int(key_file.readline().strip(), 16)
 
+with open("r_con.txt") as fh:
+    temp_list = fh.readline().strip().split()
+    r_con = []
+    for each in temp_list:
+        r_con.append(int(each,16))
 
 def cipher(input_byte, key):
     state = byte_to_state(input_byte)
-    key = byte_to_state(key)
+    #key = byte_to_state(key)
 
     state = add(state, key)
+    print_state(state)
+    state = sub_bytes(state)
+    print_state(state)
+    state = shift_rows(state)
+    print_state(state)
+    state = mix_columns(state)
     print_state(state)
 
 def make_sbox(filename):
@@ -37,6 +52,20 @@ def byte_to_state(in_byte):
             counter += 1
     return state
 
+def key_expansion(key):
+    words = []
+    temp_key = key
+    for i in range(num_words):
+        temp_word = temp_key % 4294967296
+        temp_key = temp_key / 4294967296
+        words.insert(0, temp_word)
+    for each in words:
+        print hex(each)
+
+def words_to_state(words):
+    
+
+
 def empty_list():
     state = []
     for i in range(4):
@@ -53,6 +82,9 @@ def print_state(state):
         print
     print
 
+def print_as_hex(number):
+    print '{:02x}'.format(number)
+
 def add(state, key):
     result = empty_list()
     for i in range(len(state)):
@@ -64,17 +96,40 @@ def sub_bytes(state):
     result = empty_list()
     for i in range(len(state)):
         for j in range(len(state[i])):
-            result[i][j] = 
-    return
+            coord = state[i][j]
+            result[i][j] = sbox[coord/16][coord % 16] 
+    return result
 
 def shift_rows(state):
-    return
+    result = empty_list()
+    for i in range(len(state)):
+        for j in range(len(state[i])):
+            result[i][j] = state[i][(j + i) % 4]
+    return result
 
 def mix_columns(state):
-    return
+    result = empty_list()
+    
+    for i in range(4):
+        print_as_hex(ff_multiply(state[0][i], int('02',16))) 
+        print_as_hex(ff_multiply(state[1][i], int('03',16)))
+        print_as_hex(state[2][i])
+        print_as_hex(state[3][i])
+        result[0][i] = ff_multiply(state[0][i], int('02',16)) ^ ff_multiply(state[1][i], int('03',16)) ^ state[2][i] ^ state[3][i]
+        result[1][i] = ff_multiply(state[1][i], 2) ^ ff_multiply(state[2][i], 3) ^ state[0][i] ^ state[3][i]
+        result[2][i] = ff_multiply(state[2][i], 2) ^ ff_multiply(state[3][i], 3) ^ state[0][i] ^ state[1][i]
+        result[3][i] = ff_multiply(state[3][i], 2) ^ ff_multiply(state[0][i], 3) ^ state[1][i] ^ state[2][i]
+    return result
 
 def add_round_key(state, key):
     return
+
+def add_bytes(byte_a, byte_b):
+    return byte_a ^ byte_b
+
+def xtime(in_byte):
+    result = in_byte*2
+    if result > 255:
 
 def add_bytes(byte_a, byte_b):
     return byte_a ^ byte_b
@@ -89,16 +144,8 @@ def ff_multiply(byte_a, byte_b):
     current_multiplier = byte_a
     current_total = 0
     multiply_bit = 1
-    while multiply_bit < byte_b:
+    while multiply_bit <= byte_b:
         if multiply_bit != 1:
             current_multiplier = xtime(current_multiplier)
         if byte_b & multiply_bit == multiply_bit:
             current_total = add_bytes(current_multiplier, current_total)
-        multiply_bit *= 2
-    return current_total
-    
-sbox = make_sbox("sbox.txt")
-inv_sbox = make_sbox("inv_sbox.txt")
-xtime(int("57", 16))
-print '{:02x}'.format(ff_multiply(int("57", 16), int("13", 16)))
-cipher(byte_array, key)
