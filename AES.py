@@ -1,8 +1,8 @@
 import sys
 
 num_bytes = 4
-num_words = 4 #4, 6, 8 (Nk)
-num_rounds = 10 #10, 12, 14 (Nr)
+num_words = 6 #4, 6, 8 (Nk)
+num_rounds = 12 #10, 12, 14 (Nr)
 
 with open(sys.argv[1]) as in_file:
     byte_array = in_file.readline().strip().split()
@@ -19,7 +19,6 @@ with open("r_con.txt") as fh:
 def cipher(input_byte, key_expansion):
     state = byte_to_state(input_byte)
     first_key = words_to_state(key_expansion[0:4])
-
     state = add(state, first_key)
     for i in range(1, num_rounds):
         #print_state(state)
@@ -34,6 +33,28 @@ def cipher(input_byte, key_expansion):
     state = sub_bytes(state)
     state = shift_rows(state)
     state = add(state, words_to_state(key_expansion[-4:]))
+    print_state(state)
+    return state
+
+def inv_cipher(input_byte, key_expansion):
+    state = input_byte
+    first_key = words_to_state(key_expansion[-4:])
+
+    print_state(first_key)
+    state = add(state, first_key)
+    for i in range(num_rounds - 1, 0, -1):
+        print_state(state)
+        state = inv_shift_rows(state)
+        print_state(state)
+        state = inv_sub_bytes(state)
+        print_state(state)
+        state = add(state, words_to_state(key_expansion[i*4:i*4 + 4]))
+        print_state(state)
+        state = inv_mix_columns(state)
+
+    state = inv_shift_rows(state)
+    state = inv_sub_bytes(state)
+    state = add(state, words_to_state(key_expansion[:4]))
     print_state(state)
 
 def make_sbox(filename):
@@ -120,8 +141,8 @@ def empty_list():
 def print_state(state):
     for i in range(len(state)):
         for j in range(len(state[i])):
-            print '{:02x}'.format(state[i][j]),
-        print
+            print '{:02x}'.format(state[j][i]),
+#        print
     print
 
 def print_as_hex(number):
@@ -209,4 +230,5 @@ def ff_multiply(byte_a, byte_b):
 sbox = make_sbox("sbox.txt")
 inv_sbox = make_sbox("inv_sbox.txt")
 words = key_expansion(key)
-cipher(byte_array, words)
+encrypted_text = cipher(byte_array, words)
+inv_cipher(encrypted_text, words)
